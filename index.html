@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Suzy’s Beauty Salon — Bookings</title>
+  <meta name="description" content="Simple booking web app. Add, edit, delete, and share bookings on WhatsApp. Data saved locally.">
+  <style>
+    :root{
+      --bg:#fff7fb; /* soft pink */
+      --panel:#ffffff;
+      --ink:#221722;
+      --muted:#6a5a68;
+      --brand:#d63384; /* berry */
+      --brand-2:#9d4edd; /* violet */
+      --ok:#1b9e5a;
+      --danger:#c62828;
+      --ring: 0 0 0 3px rgba(214,51,132,.2);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--ink); background:linear-gradient(180deg, var(--bg), #fefefe 60%);
+      min-height:100svh; display:flex; flex-direction:column;
+    }
+    header{
+      position:sticky; top:0; z-index:10;
+      background:rgba(255,255,255,.8); backdrop-filter:saturate(160%) blur(8px);
+      border-bottom:1px solid #f0e7f3;
+    }
+    .container{width:min(1100px, 96%); margin-inline:auto;}
+    .row{display:grid; gap:20px;}
+
+    .brand{
+      display:flex; align-items:center; gap:12px; padding:14px 0;
+    }
+    .logo{
+      width:40px; height:40px; border-radius:50%; background: radial-gradient(120% 120% at 20% 20%, var(--brand), var(--brand-2));
+      box-shadow:0 8px 24px rgba(214,51,132,.35);
+    }
+    h1{font-size:1.35rem; margin:0; letter-spacing:.2px}
+    .muted{color:var(--muted)}
+
+    main{flex:1; padding:24px 0 40px}
+
+    .panel{background:var(--panel); border:1px solid #f0e7f3; border-radius:var(--radius); box-shadow:0 10px 30px rgba(157,78,221,.05)}
+    .panel .head{padding:18px 18px 0;}
+    .panel .body{padding:18px}
+
+    form{display:grid; grid-template-columns:repeat(12, 1fr); gap:14px}
+    label{font-size:.9rem; color:var(--muted)}
+    .field{display:flex; flex-direction:column; gap:6px}
+    input, select, textarea{
+      padding:10px 12px; border-radius:12px; border:1px solid #e9deef; background:#fff; outline:none;
+      box-shadow:inset 0 -1px 0 #f6ecfa;
+    }
+    input:focus, select:focus, textarea:focus{box-shadow:var(--ring); border-color:#ebc2dd}
+
+    .col-6{grid-column:span 6}
+    .col-4{grid-column:span 4}
+    .col-8{grid-column:span 8}
+    .col-12{grid-column:span 12}
+
+    .actions{display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end}
+    .btn{
+      border:0; padding:10px 16px; border-radius:999px; cursor:pointer; font-weight:600;
+      display:inline-flex; align-items:center; gap:8px; text-decoration:none; transition:transform .04s ease;
+    }
+    .btn:active{transform:translateY(1px)}
+    .primary{background:linear-gradient(90deg,var(--brand), var(--brand-2)); color:#fff; box-shadow:0 10px 20px rgba(214,51,132,.25)}
+    .ghost{background:#fff; color:var(--brand); border:1px solid #f0e7f3}
+    .danger{background:var(--danger); color:#fff}
+
+    .toolbar{display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap}
+    .search{flex:1; min-width:240px}
+
+    .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px}
+    .card{border:1px solid #efe6f4; border-radius:14px; padding:14px; background:#fff}
+    .chip{display:inline-block; font-size:.75rem; padding:4px 8px; border-radius:999px; border:1px solid #f0e7f3; background:#fff;}
+    .nowrap{white-space:nowrap}
+
+    .empty{
+      border:2px dashed #eadff1; border-radius:16px; padding:32px; text-align:center; color:var(--muted);
+    }
+
+    footer{padding:22px 0 40px; text-align:center; color:var(--muted); font-size:.9rem}
+    a.link{color:var(--brand); text-decoration:none}
+
+    @media (max-width:720px){
+      .col-6, .col-4, .col-8, .col-12{grid-column:span 12}
+      .actions{justify-content:stretch}
+      .btn{justify-content:center; width:100%}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1>Suzy’s Beauty Salon — Bookings</h1>
+        <div class="muted" style="font-size:.95rem">A tiny web app you can deploy on GitHub Pages in minutes.</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container row" style="gap:22px">
+    <!-- Booking Form Panel -->
+    <section class="panel" aria-label="Create or edit booking">
+      <div class="head">
+        <h2 style="margin:0 0 4px">New Booking</h2>
+        <div class="muted" style="font-size:.95rem">Fill the form and hit <strong>Save</strong>. Bookings stay on this device (local only).</div>
+      </div>
+      <div class="body">
+        <form id="booking-form" autocomplete="on">
+          <input type="hidden" id="booking-id" />
+
+          <div class="field col-6">
+            <label for="name">Client name *</label>
+            <input id="name" required placeholder="e.g., Sara Ali" />
+          </div>
+
+          <div class="field col-6">
+            <label for="phone">Phone / WhatsApp *</label>
+            <input id="phone" inputmode="tel" required placeholder="e.g., +2010…" />
+          </div>
+
+          <div class="field col-6">
+            <label for="service">Service *</label>
+            <select id="service" required>
+              <option value="">Choose…</option>
+              <option>Haircut</option>
+              <option>Coloring</option>
+              <option>Manicure</option>
+              <option>Pedicure</option>
+              <option>Makeup</option>
+              <option>Facial</option>
+            </select>
+          </div>
+
+          <div class="field col-3">
+            <label for="date">Date *</label>
+            <input id="date" type="date" required />
+          </div>
+
+          <div class="field col-3">
+            <label for="time">Time *</label>
+            <input id="time" type="time" required />
+          </div>
+
+          <div class="field col-12">
+            <label for="note">Notes</label>
+            <textarea id="note" rows="2" placeholder="Any special request…"></textarea>
+          </div>
+
+          <div class="col-12 actions">
+            <button class="btn ghost" type="reset" id="reset-btn">Clear</button>
+            <button class="btn primary" type="submit">Save Booking</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- List & Tools Panel -->
+    <section class="panel" aria-label="Bookings list">
+      <div class="body">
+        <div class="toolbar">
+          <div class="search">
+            <input id="search" placeholder="Search by name, phone, service…" aria-label="Search bookings" />
+          </div>
+          <div class="nowrap" style="display:flex; gap:8px; align-items:center">
+            <select id="sort">
+              <option value="createdAt-desc">Newest first</option>
+              <option value="date-asc">Soonest first</option>
+              <option value="name-asc">Client A → Z</option>
+            </select>
+            <button class="btn ghost" id="export-btn" title="Download CSV">Export CSV</button>
+            <button class="btn danger" id="purge-btn" title="Delete all">Delete All</button>
+          </div>
+        </div>
+
+        <div id="list" class="cards" style="margin-top:14px"></div>
+        <div id="empty" class="empty" style="display:none">No bookings yet. Add your first one above ✨</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Built with ❤ by you. Data is stored locally in your browser (no server).<br>
+    Tip: Host this file on GitHub Pages, or open it directly to use.
+  </footer>
+
+  <script>
+    // --- Simple local storage DB ---
+    const KEY = 'salon.bookings.v1';
+    const $ = (sel, root=document) => root.querySelector(sel);
+
+    function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+    function load() {
+      try { return JSON.parse(localStorage.getItem(KEY)) ?? []; }
+      catch { return []; }
+    }
+
+    function save(rows) {
+      localStorage.setItem(KEY, JSON.stringify(rows));
+    }
+
+    function toCSV(rows){
+      const headers = ['name','phone','service','date','time','note','createdAt'];
+      const esc = v => '"' + String(v ?? '').replaceAll('"','""') + '"';
+      const lines = [headers.join(',')].concat(
+        rows.map(r => headers.map(h => esc(r[h])).join(','))
+      );
+      return lines.join('\n');
+    }
+
+    // --- App State ---
+    let rows = load();
+
+    function render(){
+      const list = $('#list');
+      list.innerHTML = '';
+      const q = $('#search').value.trim().toLowerCase();
+      const sort = $('#sort').value;
+
+      let view = rows.filter(r => {
+        const hay = (r.name+' '+r.phone+' '+r.service).toLowerCase();
+        return hay.includes(q);
+      });
+
+      view.sort((a,b)=>{
+        if (sort === 'createdAt-desc') return b.createdAt - a.createdAt;
+        if (sort === 'date-asc') return (a.date + a.time).localeCompare(b.date + b.time);
+        if (sort === 'name-asc') return a.name.localeCompare(b.name);
+        return 0;
+      });
+
+      if (!view.length){
+        $('#empty').style.display = 'block';
+        return;
+      }
+      $('#empty').style.display = 'none';
+
+      for (const r of view){
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:start; gap:10px">
+            <div>
+              <div style="font-weight:700; font-size:1.05rem">${r.name}</div>
+              <div class="muted" style="font-size:.9rem">${r.phone}</div>
+            </div>
+            <span class="chip">${r.service}</span>
+          </div>
+          <div style="margin:10px 0; display:flex; gap:10px; flex-wrap:wrap">
+            <span class="chip">📅 ${fmtDate(r.date)} @ ${r.time}</span>
+            <span class="chip">#${r.id.slice(-5)}</span>
+          </div>
+          ${r.note ? <div style="margin:6px 0">📝 ${escapeHtml(r.note)}</div> : ''}
+          <div class="actions" style="justify-content:flex-end; margin-top:8px">
+            <a class="btn ghost" href="${waLink(r)}" target="_blank" rel="noopener">Share on WhatsApp</a>
+            <button class="btn ghost" data-edit="${r.id}">Edit</button>
+            <button class="btn danger" data-del="${r.id}">Delete</button>
+          </div>
+        `;
+        list.appendChild(card);
+      }
+
+      // attach events for dynamic buttons
+      list.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', e => {
+        const id = e.currentTarget.getAttribute('data-del');
+        if (!confirm('Delete this booking?')) return;
+        rows = rows.filter(r => r.id !== id);
+        save(rows); render();
+      }));
+
+      list.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => {
+        const id = e.currentTarget.getAttribute('data-edit');
+        const r = rows.find(x => x.id === id);
+        if (!r) return;
+        $('#booking-id').value = r.id;
+        $('#name').value = r.name;
+        $('#phone').value = r.phone;
+        $('#service').value = r.service;
+        $('#date').value = r.date;
+        $('#time').value = r.time;
+        $('#note').value = r.note || '';
+        window.scrollTo({ top:0, behavior:'smooth' });
+      }));
+    }
+
+    function waLink(r){
+      const text = Hello ${r.name}, your booking at Suzy’s Beauty Salon is confirmed:%0A%0A+
+        • Service: ${r.service}%0A+
+        • Date: ${fmtDate(r.date)}%0A+
+        • Time: ${r.time}%0A+
+        (r.note ? • Note: ${encodeURIComponent(r.note)}%0A : '')+
+        %0ASee you soon!;
+      return https://wa.me/${encodeURIComponent(r.phone.replace(/\D/g,''))}?text=${text};
+    }
+
+    function fmtDate(iso){
+      try {
+        const d = new Date(iso + 'T00:00');
+        return d.toLocaleDateString(undefined, { weekday:'short', year:'numeric', month:'short', day:'numeric' });
+      } catch { return iso }
+    }
+
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m]));
+    }
+
+    // --- Form logic ---
+    $('#booking-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const id = $('#booking-id').value || uid();
+      const data = {
+        id,
+        name: $('#name').value.trim(),
+        phone: $('#phone').value.trim(),
+        service: $('#service').value,
+        date: $('#date').value,
+        time: $('#time').value,
+        note: $('#note').value.trim(),
+        createdAt: $('#booking-id').value ? (rows.find(r=>r.id===id)?.createdAt || Date.now()) : Date.now(),
+      };
+
+      // basic validation
+      if (!data.name || !data.phone || !data.service || !data.date || !data.time){
+        alert('Please fill all required fields (marked with *).');
+        return;
+      }
+
+      // upsert
+      const i = rows.findIndex(r => r.id === id);
+      if (i >= 0) rows[i] = data; else rows.push(data);
+      save(rows);
+      e.target.reset();
+      $('#booking-id').value = '';
+      render();
+    });
+
+    $('#reset-btn').addEventListener('click', () => {
+      $('#booking-id').value = '';
+    });
+
+    $('#search').addEventListener('input', render);
+    $('#sort').addEventListener('change', render);
+
+    $('#export-btn').addEventListener('click', () => {
+      if (!rows.length) return alert('Nothing to export.');
+      const blob = new Blob([toCSV(rows)], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'bookings.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    $('#purge-btn').addEventListener('click', () => {
+      if (!rows.length) return;
+      if (!confirm('Delete ALL bookings on this device?')) return;
+      rows = []; save(rows); render();
+    });
+
+    // Initialize defaults
+    (function init(){
+      // Default date set to today
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth()+1).padStart(2,'0');
+      const dd = String(today.getDate()).padStart(2,'0');
+      $('#date').value = ${yyyy}-${mm}-${dd};
+
+      render();
+    })();
+  </script>
+</body>
+</html>
